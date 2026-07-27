@@ -11,17 +11,34 @@ $videoPython = Join-Path $runtimeRoot "video-venv\Scripts\python.exe"
 $documentPython = Join-Path $runtimeRoot "document-venv\Scripts\python.exe"
 $logs = Join-Path $runtimeRoot "logs"
 $pidFile = Join-Path $runtimeRoot "backend-processes.json"
+$videoData = Join-Path $runtimeRoot "video-data"
+$documentWork = Join-Path $runtimeRoot "document-work"
 
 if (-not (Test-Path -LiteralPath $videoPython) -or -not (Test-Path -LiteralPath $documentPython)) {
   throw "Backend environments are missing. Run .\scripts\setup-backends.ps1 first."
 }
 
 New-Item -ItemType Directory -Path $logs -Force | Out-Null
+New-Item -ItemType Directory -Path $videoData -Force | Out-Null
+New-Item -ItemType Directory -Path $documentWork -Force | Out-Null
 $origins = @("http://127.0.0.1:5173", "http://localhost:5173", $FrontendOrigin) | Select-Object -Unique
 $env:FRONTEND_ORIGINS_RAW = $origins -join ","
+$env:DATA_DIR = $videoData
 
-$video = Start-Process -FilePath $videoPython -ArgumentList @("-m", "uvicorn", "app.main:create_app", "--factory", "--host", "127.0.0.1", "--port", "8765") -WorkingDirectory $VideoBackend -WindowStyle Hidden -RedirectStandardOutput (Join-Path $logs "video.out.log") -RedirectStandardError (Join-Path $logs "video.err.log") -PassThru
-$document = Start-Process -FilePath $documentPython -ArgumentList @("-m", "uvicorn", "app:app", "--host", "127.0.0.1", "--port", "8000") -WorkingDirectory $DocumentBackend -WindowStyle Hidden -RedirectStandardOutput (Join-Path $logs "document.out.log") -RedirectStandardError (Join-Path $logs "document.err.log") -PassThru
+function Start-HiddenBackend {
+  param([string]$Python, [string]$Arguments, [string]$WorkingDirectory)
+  $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
+  $startInfo.FileName = $Python
+  $startInfo.Arguments = $Arguments
+  $startInfo.WorkingDirectory = $WorkingDirectory
+  $startInfo.UseShellExecute = $true
+  $startInfo.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
+  return [System.Diagnostics.Process]::Start($startInfo)
+}
+
+$video = Start-HiddenBackend -Python $videoPython -Arguments '-m uvicorn app.main:create_app --factory --host 127.0.0.1 --port 8765' -WorkingDirectory $VideoBackend
+$documentArguments = "-m uvicorn app:app --app-dir `"$DocumentBackend`" --host 127.0.0.1 --port 8000"
+$document = Start-HiddenBackend -Python $documentPython -Arguments $documentArguments -WorkingDirectory $documentWork
 
 @{ video = $video.Id; document = $document.Id } | ConvertTo-Json | Set-Content -LiteralPath $pidFile -Encoding UTF8
 
