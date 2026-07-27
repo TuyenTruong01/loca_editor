@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title">
+  <title id="title">Loca Editor</title>
+  <g fill="none" stroke="#0D5C75" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="5" y="5" width="86" height="86" rx="20"/><path d="M24 25v45h27" stroke-width="8"/>
+    <rect x="35" y="35" width="38" height="28" rx="6"/><path d="m50 43 12 6-12 7z" fill="#0D5C75" stroke="none"/>
+    <path d="M65 20h16v13H69l-4 4zM70 26h6M73 23v6"/><path d="M36 24h16v12H40l-4 4zM41 32l4-8 4 8m-6-3h4"/>
+    <path d="M40 75v4m7-7v10m7-14v18m7-13v9m7-6v3" stroke-width="3"/>
+  </g>
+</svg>

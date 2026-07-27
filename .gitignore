@@ -1,0 +1,28 @@
+# Dependencies and generated output
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Local environment and secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Local backend runtimes, logs and process data
+.runtime/
+*.log
+*.pid
+
+# Editor and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Test and cache output
+coverage/
+.pytest_cache/
+__pycache__/
+*.py[cod]
