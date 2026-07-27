@@ -24,6 +24,8 @@ New-Item -ItemType Directory -Path $documentWork -Force | Out-Null
 $origins = @("http://127.0.0.1:5173", "http://localhost:5173", $FrontendOrigin) | Select-Object -Unique
 $env:FRONTEND_ORIGINS_RAW = $origins -join ","
 $env:DATA_DIR = $videoData
+$env:LOCA_VIDEO_BACKEND_PATH = $VideoBackend
+$env:LOCA_DOCUMENT_BACKEND_PATH = $DocumentBackend
 
 function Start-HiddenBackend {
   param([string]$Python, [string]$Arguments, [string]$WorkingDirectory)
@@ -36,8 +38,9 @@ function Start-HiddenBackend {
   return [System.Diagnostics.Process]::Start($startInfo)
 }
 
-$video = Start-HiddenBackend -Python $videoPython -Arguments '-m uvicorn app.main:create_app --factory --host 127.0.0.1 --port 8765' -WorkingDirectory $VideoBackend
-$documentArguments = "-m uvicorn app:app --app-dir `"$DocumentBackend`" --host 127.0.0.1 --port 8000"
+$videoArguments = "-m uvicorn video_backend_host:app --app-dir `"$PSScriptRoot`" --host 127.0.0.1 --port 8765"
+$video = Start-HiddenBackend -Python $videoPython -Arguments $videoArguments -WorkingDirectory $VideoBackend
+$documentArguments = "-m uvicorn document_backend_host:app --app-dir `"$PSScriptRoot`" --host 127.0.0.1 --port 8000"
 $document = Start-HiddenBackend -Python $documentPython -Arguments $documentArguments -WorkingDirectory $documentWork
 
 @{ video = $video.Id; document = $document.Id } | ConvertTo-Json | Set-Content -LiteralPath $pidFile -Encoding UTF8
