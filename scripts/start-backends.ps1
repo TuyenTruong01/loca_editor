@@ -23,7 +23,7 @@ New-Item -ItemType Directory -Path $logs -Force | Out-Null
 New-Item -ItemType Directory -Path $videoData -Force | Out-Null
 New-Item -ItemType Directory -Path $documentWork -Force | Out-Null
 New-Item -ItemType Directory -Path $localTemp -Force | Out-Null
-$origins = @("http://127.0.0.1:5173", "http://localhost:5173", $FrontendOrigin) | Select-Object -Unique
+$origins = @("http://127.0.0.1:5173", "http://localhost:5173", "https://loca-editor.vercel.app", $FrontendOrigin) | Select-Object -Unique
 $env:FRONTEND_ORIGINS_RAW = $origins -join ","
 $env:DATA_DIR = $videoData
 $env:LOCA_VIDEO_BACKEND_PATH = $VideoBackend

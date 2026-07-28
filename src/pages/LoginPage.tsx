@@ -1,0 +1,9 @@
+import { useState } from "react";
+import { LoaderCircle, LockKeyhole, Mail } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
+
+export default function LoginPage() {
+  const { signIn, error: authError } = useAuth(); const [email, setEmail] = useState(""); const [password, setPassword] = useState(""); const [busy, setBusy] = useState(false); const [error, setError] = useState("");
+  async function submit(event: React.FormEvent) { event.preventDefault(); if (busy) return; setBusy(true); setError(""); try { await signIn(email.trim(), password); } catch (reason) { setError(reason instanceof Error ? reason.message : "Đăng nhập thất bại."); } finally { setBusy(false); } }
+  return <main className="login-screen"><section className="login-card"><div className="login-brand"><img src={`${import.meta.env.BASE_URL}assets/logo.png`} alt="Loca Editor" /><h1><strong>Loca</strong> <span>Editor</span></h1></div><div className="login-copy"><span className="eyebrow">ĐĂNG NHẬP HỆ THỐNG</span><h2>Chào mừng trở lại</h2><p>Sử dụng một tài khoản cho Video Editor và Document Editor.</p></div><form onSubmit={submit}><label className="field"><span>Email</span><div className="input-icon"><Mail /><input type="email" autoComplete="username" required value={email} onChange={event => setEmail(event.target.value)} placeholder="name@example.com" /></div></label><label className="field"><span>Mật khẩu</span><div className="input-icon"><LockKeyhole /><input type="password" autoComplete="current-password" required value={password} onChange={event => setPassword(event.target.value)} placeholder="Nhập mật khẩu" /></div></label>{(error || authError) && <div className="notice error">{error || authError}</div>}<button className="primary login-submit" disabled={busy}>{busy && <LoaderCircle className="spin" />}{busy ? "Đang đăng nhập..." : "Đăng nhập"}</button></form><small className="login-foot">Designed by Tuyen Truong · © 2026</small></section></main>;
+}

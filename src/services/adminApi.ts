@@ -1,0 +1,17 @@
+import { getAccessToken } from "./supabaseAuth";
+import type { AccessProfile } from "../contexts/AuthContext";
+
+const base = import.meta.env.VITE_DOCUMENT_API_BASE || "http://127.0.0.1:8000";
+export type AdminUser = AccessProfile & { created_at?: string; last_sign_in_at?: string | null };
+export type AuditEntry = { id: number; admin_user_id: string | null; target_user_id: string | null; action: string; before: unknown; after: unknown; request_id: string | null; created_at: string };
+
+async function call<T>(path: string, init: RequestInit = {}) {
+  const token = await getAccessToken(); const response = await fetch(`${base}${path}`, { ...init, headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, ...init.headers } });
+  const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.detail || "Thao tác quản trị thất bại."); return data as T;
+}
+export const listUsers = () => call<AdminUser[]>("/api/admin/users");
+export const listAudit = () => call<AuditEntry[]>("/api/admin/audit");
+export const createUser = (body: { email: string; password: string; role: string; status: string; expires_at: string | null; force_password_change: boolean }) => call<AdminUser>("/api/admin/users", { method: "POST", body: JSON.stringify(body) });
+export const updateUser = (id: string, body: Partial<Pick<AdminUser, "role" | "status" | "expires_at" | "force_password_change">>) => call<AdminUser>(`/api/admin/users/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+export const deleteUser = (id: string) => call<{ ok: boolean }>(`/api/admin/users/${id}`, { method: "DELETE" });
+export const markPasswordChanged = () => call<{ ok: boolean }>("/api/auth/password-changed", { method: "POST" });

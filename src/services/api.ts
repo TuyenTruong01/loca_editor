@@ -1,7 +1,10 @@
 import axios from "axios";
+import { getAccessToken } from "./supabaseAuth";
 
 const videoApi = axios.create({ baseURL: import.meta.env.VITE_VIDEO_API_BASE || "http://127.0.0.1:8765/api", timeout: 15000 });
 const documentBase = import.meta.env.VITE_DOCUMENT_API_BASE || "http://127.0.0.1:8000";
+videoApi.interceptors.request.use(async config => { const token = await getAccessToken(); if (token) config.headers.Authorization = `Bearer ${token}`; return config; });
+async function authHeaders(extra: HeadersInit = {}) { const token = await getAccessToken(); return { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...extra }; }
 
 function blobError(error: unknown, fallback: string): never {
   if (axios.isAxiosError(error)) throw new Error(error.message || fallback);
@@ -35,10 +38,10 @@ async function json<T>(response: Response): Promise<T> {
 }
 export type DocumentJob = { job_id: string; status?: string; output_file?: string; download_url?: string; [key: string]: unknown };
 export async function convertDocument(file: File, settings: Record<string, unknown>) {
-  const job = await json<DocumentJob>(await fetch(`${documentBase}/api/jobs`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(settings) }));
+  const job = await json<DocumentJob>(await fetch(`${documentBase}/api/jobs`, { method: "POST", headers: await authHeaders({ "Content-Type": "application/json" }), body: JSON.stringify(settings) }));
   const upload = new FormData(); upload.append("job_id", job.job_id); upload.append("file", file);
-  await json(await fetch(`${documentBase}/api/upload`, { method: "POST", body: upload }));
-  return json<DocumentJob>(await fetch(`${documentBase}/api/convert`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ job_id: job.job_id }) }));
+  await json(await fetch(`${documentBase}/api/upload`, { method: "POST", headers: await authHeaders(), body: upload }));
+  return json<DocumentJob>(await fetch(`${documentBase}/api/convert`, { method: "POST", headers: await authHeaders({ "Content-Type": "application/json" }), body: JSON.stringify({ job_id: job.job_id }) }));
 }
 
 export function saveBlob(blob: Blob, filename: string) {
@@ -49,6 +52,11 @@ export function saveBlob(blob: Blob, filename: string) {
 export function documentDownloadUrl(job: DocumentJob) {
   if (job.download_url) return job.download_url.startsWith("http") ? job.download_url : `${documentBase}${job.download_url}`;
   return `${documentBase}/api/jobs/${job.job_id}/download`;
+}
+export async function downloadDocument(job: DocumentJob) {
+  const response = await fetch(documentDownloadUrl(job), { headers: await authHeaders() });
+  if (!response.ok) return responseError(response, "Không thể tải tài liệu.");
+  return { blob: await response.blob(), filename: responseFilename(response, `loca-document.${String(job.output_file || "docx").split(".").pop() || "docx"}`) };
 }
 
 export type PdfInfo = { filename: string; size: number; pages: number };
@@ -69,14 +77,14 @@ function responseFilename(response: Response, fallback: string) {
 
 export async function inspectPdf(file: File): Promise<PdfInfo> {
   const body = new FormData(); body.append("file", file);
-  const response = await fetch(`${documentBase}/api/pdf/info`, { method: "POST", body });
+  const response = await fetch(`${documentBase}/api/pdf/info`, { method: "POST", headers: await authHeaders(), body });
   if (!response.ok) return responseError(response, "Không thể đọc thông tin PDF.");
   return response.json() as Promise<PdfInfo>;
 }
 
 export async function splitPdf(file: File, pageRanges: string, outputMode: "merged" | "separate", outputName: string): Promise<DownloadResult> {
   const body = new FormData(); body.append("file", file); body.append("page_ranges", pageRanges); body.append("output_mode", outputMode); body.append("output_name", outputName);
-  const response = await fetch(`${documentBase}/api/pdf/split`, { method: "POST", body });
+  const response = await fetch(`${documentBase}/api/pdf/split`, { method: "POST", headers: await authHeaders(), body });
   if (!response.ok) return responseError(response, "Không thể cắt PDF.");
   const fallback = outputMode === "separate" && pageRanges.includes("|") ? `${outputName || "document_cut"}.zip` : `${outputName || "document_cut"}.pdf`;
   return { blob: await response.blob(), filename: responseFilename(response, fallback) };
@@ -84,7 +92,7 @@ export async function splitPdf(file: File, pageRanges: string, outputMode: "merg
 
 export async function mergePdfs(files: File[], outputName: string): Promise<DownloadResult> {
   const body = new FormData(); files.forEach(file => body.append("files[]", file)); body.append("output_name", outputName);
-  const response = await fetch(`${documentBase}/api/pdf/merge`, { method: "POST", body });
+  const response = await fetch(`${documentBase}/api/pdf/merge`, { method: "POST", headers: await authHeaders(), body });
   if (!response.ok) return responseError(response, "Không thể nối PDF.");
   return { blob: await response.blob(), filename: responseFilename(response, `${outputName || "merged-document"}.pdf`) };
 }
