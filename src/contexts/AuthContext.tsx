@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { readStoredSession, refreshSession, saveSession, signIn as supabaseSignIn, signOut as supabaseSignOut, type AuthSession } from "../services/supabaseAuth";
+import { readRecoverySession, readStoredSession, refreshSession, saveSession, signIn as supabaseSignIn, signOut as supabaseSignOut, type AuthSession } from "../services/supabaseAuth";
 
 export type AccessProfile = { user_id: string; email: string; role: "admin" | "agent" | "user"; status: "active" | "locked" | "expired"; expires_at: string | null; force_password_change: boolean };
 type Value = { session: AuthSession | null; profile: AccessProfile | null; loading: boolean; error: string; signIn(email: string, password: string): Promise<void>; signOut(): Promise<void>; reloadProfile(): Promise<void>; token(): Promise<string | null> };
@@ -7,7 +7,7 @@ const AuthContext = createContext<Value | null>(null);
 const documentBase = import.meta.env.VITE_DOCUMENT_API_BASE || "http://127.0.0.1:8000";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<AuthSession | null>(() => readStoredSession()); const [profile, setProfile] = useState<AccessProfile | null>(null); const [loading, setLoading] = useState(true); const [error, setError] = useState("");
+  const [session, setSession] = useState<AuthSession | null>(() => readRecoverySession() || readStoredSession()); const [profile, setProfile] = useState<AccessProfile | null>(null); const [loading, setLoading] = useState(true); const [error, setError] = useState("");
   const token = useCallback(async () => {
     let current = session || readStoredSession(); if (!current) return null;
     if ((current.expires_at || 0) <= Math.floor(Date.now() / 1000) + 30) { current = await refreshSession(current.refresh_token); setSession(current); }

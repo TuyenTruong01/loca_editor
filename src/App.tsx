@@ -11,6 +11,7 @@ import LoginPage from "./pages/LoginPage";
 import PasswordChangePage from "./pages/PasswordChangePage";
 import AdminPage from "./pages/AdminPage";
 import { useAuth } from "./contexts/AuthContext";
+import { isPasswordRecovery } from "./services/supabaseAuth";
 
 type Editor = "video" | "document";
 type Page = "studio" | "download" | "compress" | "convert" | "split-pdf" | "merge-pdf" | "about" | "admin";
@@ -40,7 +41,7 @@ export default function App() {
   useEffect(() => { if (!loading && page === "admin" && profile?.role !== "admin") { setPage("studio"); setEditor("video"); window.history.replaceState({}, "", "/video/studio"); } }, [loading, profile, page]);
   if (loading) return <main className="auth-loading"><img src={`${import.meta.env.BASE_URL}assets/logo.png`} alt="Loca Editor" /><p>Đang xác minh tài khoản...</p></main>;
   if (showLogin && (!session || !profile)) return <LoginPage onBack={() => setShowLogin(false)} />;
-  if (profile?.force_password_change) return <PasswordChangePage />;
+  if (profile?.force_password_change || (session && isPasswordRecovery())) return <PasswordChangePage />;
   function navigate(nextEditor: Editor, nextPage: Page) { if (nextPage === "admin" && profile?.role !== "admin") return; setEditor(nextEditor); setPage(nextPage); setMenuOpen(false); window.history.pushState({}, "", routeFor(nextEditor, nextPage)); }
   function chooseEditor(next: Editor) { navigate(next, next === "video" ? "studio" : "convert"); }
   return <div className="app-shell">
