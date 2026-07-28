@@ -3,8 +3,8 @@ import { getAccessToken } from "./supabaseAuth";
 
 const videoApi = axios.create({ baseURL: import.meta.env.VITE_VIDEO_API_BASE || "http://127.0.0.1:8765/api", timeout: 15000 });
 const documentBase = import.meta.env.VITE_DOCUMENT_API_BASE || "http://127.0.0.1:8000";
-videoApi.interceptors.request.use(async config => { const token = await getAccessToken(); if (token) config.headers.Authorization = `Bearer ${token}`; return config; });
-async function authHeaders(extra: HeadersInit = {}) { const token = await getAccessToken(); return { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...extra }; }
+videoApi.interceptors.request.use(async config => { const token = await getAccessToken(); if (!token) throw new Error("Vui lòng đăng nhập để sử dụng chức năng này."); config.headers.Authorization = `Bearer ${token}`; return config; });
+async function authHeaders(extra: HeadersInit = {}) { const token = await getAccessToken(); if (!token) throw new Error("Vui lòng đăng nhập để sử dụng chức năng này."); return { Authorization: `Bearer ${token}`, ...extra }; }
 
 function blobError(error: unknown, fallback: string): never {
   if (axios.isAxiosError(error)) throw new Error(error.message || fallback);
