@@ -13,6 +13,7 @@ $logs = Join-Path $runtimeRoot "logs"
 $pidFile = Join-Path $runtimeRoot "backend-processes.json"
 $videoData = Join-Path $runtimeRoot "video-data"
 $documentWork = Join-Path $runtimeRoot "document-work"
+$localTemp = Join-Path $runtimeRoot "temp"
 
 if (-not (Test-Path -LiteralPath $videoPython) -or -not (Test-Path -LiteralPath $documentPython)) {
   throw "Backend environments are missing. Run .\scripts\setup-backends.ps1 first."
@@ -21,11 +22,18 @@ if (-not (Test-Path -LiteralPath $videoPython) -or -not (Test-Path -LiteralPath 
 New-Item -ItemType Directory -Path $logs -Force | Out-Null
 New-Item -ItemType Directory -Path $videoData -Force | Out-Null
 New-Item -ItemType Directory -Path $documentWork -Force | Out-Null
+New-Item -ItemType Directory -Path $localTemp -Force | Out-Null
 $origins = @("http://127.0.0.1:5173", "http://localhost:5173", $FrontendOrigin) | Select-Object -Unique
 $env:FRONTEND_ORIGINS_RAW = $origins -join ","
 $env:DATA_DIR = $videoData
 $env:LOCA_VIDEO_BACKEND_PATH = $VideoBackend
 $env:LOCA_DOCUMENT_BACKEND_PATH = $DocumentBackend
+$env:TEMP = $localTemp
+$env:TMP = $localTemp
+$tesseract = "C:\Program Files\Tesseract-OCR\tesseract.exe"
+if (Test-Path -LiteralPath $tesseract) {
+  $env:TESSERACT_CMD = $tesseract
+}
 
 function Start-HiddenBackend {
   param([string]$Python, [string]$Arguments, [string]$WorkingDirectory)
@@ -57,6 +65,10 @@ function Wait-ForHealth([string]$Name, [string]$Url) {
   } while ((Get-Date) -lt $deadline)
   Write-Warning "$Name did not respond. Check logs in $logs"
 }
+
+Start-Sleep -Milliseconds 500
+if ($video.HasExited) { throw "Video backend exited during startup. Exit code: $($video.ExitCode)" }
+if ($document.HasExited) { throw "Document backend exited during startup. Exit code: $($document.ExitCode)" }
 
 Wait-ForHealth "Video backend" "http://127.0.0.1:8765/api/health"
 Wait-ForHealth "Document backend" "http://127.0.0.1:8000/api/health"

@@ -50,3 +50,41 @@ export function documentDownloadUrl(job: DocumentJob) {
   if (job.download_url) return job.download_url.startsWith("http") ? job.download_url : `${documentBase}${job.download_url}`;
   return `${documentBase}/api/jobs/${job.job_id}/download`;
 }
+
+export type PdfInfo = { filename: string; size: number; pages: number };
+export type DownloadResult = { blob: Blob; filename: string };
+
+async function responseError(response: Response, fallback: string): Promise<never> {
+  try { const data = await response.json() as { detail?: string }; throw new Error(data.detail || fallback); }
+  catch (error) { if (error instanceof Error && error.message !== "Unexpected end of JSON input") throw error; }
+  throw new Error(fallback);
+}
+
+function responseFilename(response: Response, fallback: string) {
+  const disposition = response.headers.get("Content-Disposition") || "";
+  const utf = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf) { try { return decodeURIComponent(utf[1]); } catch { return utf[1]; } }
+  return disposition.match(/filename="?([^";]+)"?/i)?.[1] || fallback;
+}
+
+export async function inspectPdf(file: File): Promise<PdfInfo> {
+  const body = new FormData(); body.append("file", file);
+  const response = await fetch(`${documentBase}/api/pdf/info`, { method: "POST", body });
+  if (!response.ok) return responseError(response, "Không thể đọc thông tin PDF.");
+  return response.json() as Promise<PdfInfo>;
+}
+
+export async function splitPdf(file: File, pageRanges: string, outputMode: "merged" | "separate", outputName: string): Promise<DownloadResult> {
+  const body = new FormData(); body.append("file", file); body.append("page_ranges", pageRanges); body.append("output_mode", outputMode); body.append("output_name", outputName);
+  const response = await fetch(`${documentBase}/api/pdf/split`, { method: "POST", body });
+  if (!response.ok) return responseError(response, "Không thể cắt PDF.");
+  const fallback = outputMode === "separate" && pageRanges.includes("|") ? `${outputName || "document_cut"}.zip` : `${outputName || "document_cut"}.pdf`;
+  return { blob: await response.blob(), filename: responseFilename(response, fallback) };
+}
+
+export async function mergePdfs(files: File[], outputName: string): Promise<DownloadResult> {
+  const body = new FormData(); files.forEach(file => body.append("files[]", file)); body.append("output_name", outputName);
+  const response = await fetch(`${documentBase}/api/pdf/merge`, { method: "POST", body });
+  if (!response.ok) return responseError(response, "Không thể nối PDF.");
+  return { blob: await response.blob(), filename: responseFilename(response, `${outputName || "merged-document"}.pdf`) };
+}

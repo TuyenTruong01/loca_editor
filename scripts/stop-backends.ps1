@@ -7,9 +7,11 @@ if (-not (Test-Path -LiteralPath $pidFile)) {
 }
 
 $processes = Get-Content -LiteralPath $pidFile -Raw | ConvertFrom-Json
-foreach ($id in @($processes.video, $processes.document)) {
-  if ($id -and (Get-Process -Id $id -ErrorAction SilentlyContinue)) {
-    Stop-Process -Id $id
+foreach ($backendProcessId in @($processes.video, $processes.document)) {
+  if ($backendProcessId -and (Get-Process -Id $backendProcessId -ErrorAction SilentlyContinue)) {
+    # The venv launcher can spawn a second Python process on Windows. Stop the
+    # complete tree so an old uvicorn worker cannot keep serving the port.
+    & taskkill.exe /PID $backendProcessId /T /F | Out-Null
   }
 }
 Remove-Item -LiteralPath $pidFile -Force
