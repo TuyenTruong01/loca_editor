@@ -20,7 +20,7 @@ export default function DownloadPage() {
     {message && <div className="notice error">{message}</div>}
     <div className="split equal">
       <article className="card tool-card"><div className="card-title"><span className="number">01</span><div><h3>Tải video</h3><p>Tải từ đường dẫn trực tiếp hoặc website phổ biến.</p></div></div>
-        <label className="field"><span>Đường dẫn video</span><div className="input-icon"><Link2 /><input value={url} onChange={e => { setUrl(e.target.value); setDownloadResult(null); downloadTimer.reset(); }} placeholder="https://youtube.com/watch?v=..." /></div></label>
+        <label className="field"><span>Đường dẫn video</span><div className="input-icon"><Link2 /><input value={url} onChange={e => { setUrl(e.target.value); setDownloadResult(null); downloadTimer.reset(); }} placeholder="https://example.com/video" /></div></label>
         <div className="choice-grid">{[["small","Tiết kiệm","720p"],["balanced","Cân bằng","1080p"],["best","Cao nhất","Chất lượng gốc"]].map(item => <button key={item[0]} className={quality === item[0] ? "choice active" : "choice"} onClick={() => setQuality(item[0])}><i/><strong>{item[1]}</strong><small>{item[2]}</small></button>)}</div>
         <TimedActionButton label="Tải video" loadingLabel="Đang tải..." isRunning={downloadTimer.isRunning} elapsedTime={downloadTimer.formattedTime} disabled={!url.trim() || downloadBusy} onClick={startDownload} icon={<Download />} success={!!downloadResult} error={!!message} />{downloadResult && <div className="result"><span><strong>Video đã sẵn sàng</strong><small>Chọn nơi lưu trên máy tính.</small></span><button className="primary" onClick={() => saveBlob(downloadResult.blob, downloadResult.name)}><Save /> Lưu video</button></div>}
       </article>

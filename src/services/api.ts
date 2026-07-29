@@ -68,12 +68,20 @@ async function json<T>(response: Response): Promise<T> {
 }
 export type DocumentJob = { job_id: string; status?: string; output_file?: string; download_url?: string; [key: string]: unknown };
 export async function convertDocument(file: File, settings: Record<string, unknown>) {
+  let sourceFile = file;
+  const selectedPages = String(settings.pages || "").trim();
+  if (selectedPages) {
+    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    if (!isPdf) throw new Error("Chỉ có thể chọn trang xử lý đối với tệp PDF.");
+    const selected = await splitPdf(file, selectedPages, "merged", `${file.name.replace(/\.pdf$/i, "")}-selected.pdf`);
+    sourceFile = new File([selected.blob], selected.filename, { type: "application/pdf" });
+  }
   const call = async (path: string, init: RequestInit, step: string) => {
     try { return await fetch(`${documentBase}${path}`, init); }
     catch { throw new Error(`Mất kết nối backend tài liệu khi ${step}. Hãy kiểm tra backend và Cloudflare Tunnel.`); }
   };
   const job = await json<DocumentJob>(await call("/api/jobs", { method: "POST", headers: await authHeaders({ "Content-Type": "application/json" }), body: JSON.stringify(settings) }, "tạo tác vụ"));
-  const upload = new FormData(); upload.append("job_id", job.job_id); upload.append("file", file);
+  const upload = new FormData(); upload.append("job_id", job.job_id); upload.append("file", sourceFile);
   await json(await call("/api/upload", { method: "POST", headers: await authHeaders(), body: upload }, "tải tệp lên"));
   return json<DocumentJob>(await call("/api/convert", { method: "POST", headers: await authHeaders({ "Content-Type": "application/json" }), body: JSON.stringify({ job_id: job.job_id }) }, "chuyển đổi"));
 }
