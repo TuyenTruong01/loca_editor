@@ -1,12 +1,37 @@
 import os
 import sys
 
-from starlette.responses import Response
+from starlette.requests import Request
+from starlette.responses import JSONResponse, Response
 
 backend_path = os.environ["LOCA_DOCUMENT_BACKEND_PATH"]
 sys.path.insert(0, backend_path)
 
+from services.validation.docx_inspector import DocxInspector  # noqa: E402
+
+
+def validate_practical_docx(self, path):
+    """Reject broken DOCX files while allowing small, harmless textbox overlaps."""
+    report = self.inspect(path)
+    invalid = (
+        report["editable_character_count"] == 0
+        or report["max_font_size_pt"] > 72
+        or report["text_outside_page_count"] != 0
+        or report["overlap_count"] > 20
+    )
+    if invalid:
+        raise RuntimeError("DOCX_EXPORT_VALIDATION_FAILED")
+    return report
+
+
+DocxInspector.validate_editable = validate_practical_docx
+
 from app import app  # noqa: E402
+
+
+@app.exception_handler(Exception)
+async def document_backend_error(_request: Request, exc: Exception):
+    return JSONResponse(status_code=500, content={"detail": f"Chuyển đổi thất bại trên backend: {exc}"})
 
 ALLOWED_ORIGINS = {
     "https://loca-editor.vercel.app",
