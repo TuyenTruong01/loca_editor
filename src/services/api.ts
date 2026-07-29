@@ -37,6 +37,16 @@ async function audioOperation(path: string, file: File) {
   catch (error) { return await blobError(error, "Không thể xử lý âm thanh."); }
 }
 export const extractAudio = (file: File) => audioOperation("/audio/extract", file);
+export const muteVideo = (file: File) => audioOperation("/audio/mute", file);
+
+export async function renderVideoProject(clips: File[], trims: Array<{ start: number; end: number }>, texts: Array<{ text: string; start: number; end: number }>, music: File | null) {
+  const body = new FormData();
+  clips.forEach(clip => body.append("clips", clip));
+  body.append("trims", JSON.stringify(trims)); body.append("texts", JSON.stringify(texts)); body.append("cut_mode", "accurate");
+  if (music) body.append("music", music);
+  try { return (await videoApi.post<Blob>("/editor/render", body, { responseType: "blob", timeout: 0 })).data; }
+  catch (error) { return await blobError(error, "Không thể xuất dự án video."); }
+}
 
 async function json<T>(response: Response): Promise<T> {
   const data = await response.json().catch(() => ({})) as { detail?: string };
