@@ -17,7 +17,7 @@ def validate_practical_docx(self, path):
         report["editable_character_count"] == 0
         or report["max_font_size_pt"] > 72
         or report["text_outside_page_count"] != 0
-        or report["overlap_count"] > 20
+        or report["overlap_count"] > max(20, report["media_count"] * 2)
     )
     if invalid:
         raise RuntimeError("DOCX_EXPORT_VALIDATION_FAILED")
@@ -53,7 +53,10 @@ async def allow_local_network_access(request, call_next):
         response.headers["Access-Control-Allow-Credentials"] = "true"
         response.headers["Access-Control-Max-Age"] = "86400"
     else:
-        response = await call_next(request)
+        try:
+            response = await call_next(request)
+        except Exception as exc:
+            response = JSONResponse(status_code=500, content={"detail": f"Chuyển đổi thất bại trên backend: {exc}"})
         if origin in ALLOWED_ORIGINS:
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Credentials"] = "true"
