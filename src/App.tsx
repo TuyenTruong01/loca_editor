@@ -10,20 +10,22 @@ import AboutPage from "./pages/AboutPage";
 import LoginPage from "./pages/LoginPage";
 import PasswordChangePage from "./pages/PasswordChangePage";
 import AdminPage from "./pages/AdminPage";
+import HomePage from "./pages/HomePage";
 import { useAuth } from "./contexts/AuthContext";
 import { isPasswordRecovery } from "./services/supabaseAuth";
 
 type Editor = "video" | "document";
-type Page = "studio" | "download" | "compress" | "convert" | "split-pdf" | "merge-pdf" | "about" | "admin";
+type Page = "home" | "studio" | "download" | "compress" | "convert" | "split-pdf" | "merge-pdf" | "about" | "admin";
 type LocationState = { editor: Editor; page: Page };
 
 const tabs: Record<Editor, { id: Page; label: string }[]> = {
   video: [{ id: "studio", label: "Studio chỉnh sửa" }, { id: "download", label: "Tải video" }, { id: "compress", label: "Nén video" }, { id: "about", label: "Giới thiệu" }],
   document: [{ id: "convert", label: "Chuyển đổi tài liệu" }, { id: "split-pdf", label: "Cắt PDF" }, { id: "merge-pdf", label: "Nối PDF" }, { id: "about", label: "Giới thiệu" }],
 };
-const routeFor = (editor: Editor, page: Page) => page === "admin" ? "/admin" : `/${editor}/${page}`;
+const routeFor = (editor: Editor, page: Page) => page === "home" ? "/" : page === "admin" ? "/admin" : `/${editor}/${page}`;
 function readLocation(): LocationState {
   const path = window.location.pathname.replace(/\/$/, "");
+  if (!path) return { editor: "video", page: "home" };
   if (path === "/admin") return { editor: "document", page: "admin" };
   if (path === "/document/split-pdf") return { editor: "document", page: "split-pdf" };
   if (path === "/document/merge-pdf") return { editor: "document", page: "merge-pdf" };
@@ -45,14 +47,14 @@ export default function App() {
   function navigate(nextEditor: Editor, nextPage: Page) { if (nextPage === "admin" && profile?.role !== "admin") return; setEditor(nextEditor); setPage(nextPage); setMenuOpen(false); window.history.pushState({}, "", routeFor(nextEditor, nextPage)); }
   function chooseEditor(next: Editor) { navigate(next, next === "video" ? "studio" : "convert"); }
   return <div className="app-shell">
-    <header className="topbar"><button className="mobile-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label="Mở trình đơn">{menuOpen ? <X /> : <Menu />}</button>{page !== "admin" && <nav className="top-tabs">{tabs[editor].map(tab => <button key={tab.id} className={page === tab.id ? "active" : ""} onClick={() => navigate(editor, tab.id)}>{tab.label}</button>)}</nav>}</header>
-    <div className="workspace"><aside className={menuOpen ? "sidebar open" : "sidebar"}><button type="button" className="brand-row brand-home" onClick={() => navigate("video", "studio")} aria-label="Về trang chủ Loca Editor"><img src={`${import.meta.env.BASE_URL}assets/logo.png`} alt="Loca Editor" /><h1><strong>Loca</strong> <span>Editor</span></h1></button>
+    <header className="topbar"><button className="mobile-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label="Mở trình đơn">{menuOpen ? <X /> : <Menu />}</button>{page !== "admin" && page !== "home" && <nav className="top-tabs">{tabs[editor].map(tab => <button key={tab.id} className={page === tab.id ? "active" : ""} onClick={() => navigate(editor, tab.id)}>{tab.label}</button>)}</nav>}</header>
+    <div className="workspace"><aside className={menuOpen ? "sidebar open" : "sidebar"}><button type="button" className="brand-row brand-home" onClick={() => navigate("video", "home")} aria-label="Về trang chủ Loca Editor"><img src={`${import.meta.env.BASE_URL}assets/logo.png`} alt="Loca Editor" /><h1><strong>Loca</strong> <span>Editor</span></h1></button>
       <button className={page !== "admin" && editor === "video" ? "active" : ""} onClick={() => chooseEditor("video")}><Clapperboard /><span><strong>Video Editor</strong><small>Chỉnh sửa và tối ưu video</small></span></button>
       <button className={page !== "admin" && editor === "document" ? "active" : ""} onClick={() => chooseEditor("document")}><FileText /><span><strong>Document Editor</strong><small>Chuyển đổi và xử lý tài liệu</small></span></button>
       {profile?.role === "admin" && <button className={page === "admin" ? "active admin-nav" : "admin-nav"} onClick={() => navigate(editor, "admin")}><ShieldCheck /><span><strong>Quản trị</strong><small>Tài khoản và phân quyền</small></span></button>}
       <div className="sidebar-account">{profile ? <><div className="sidebar-user"><UserRound/><span><strong>{profile.email}</strong><small>{profile.role}</small></span></div><button onClick={() => void signOut()}><LogOut/> Đăng xuất</button></> : <button className="sidebar-login" onClick={() => setShowLogin(true)}><UserRound/> Đăng nhập</button>}</div>
       <div className="sidebar-foot"><Info size={15} /><span>Designed by Tuyen Truong · © 2026</span></div></aside>
-      <main className={page === "studio" ? "main studio-main" : "main"}>{page === "studio" && <StudioPage />}{page === "download" && <DownloadPage />}{page === "compress" && <CompressPage />}{page === "convert" && <DocumentPage />}{page === "split-pdf" && <SplitPdfPage />}{page === "merge-pdf" && <MergePdfPage />}{page === "about" && <AboutPage editor={editor} />}{page === "admin" && profile?.role === "admin" && <AdminPage />}</main>
+      <main className={page === "studio" ? "main studio-main" : "main"}>{page === "home" && <HomePage onOpenVideo={() => navigate("video", "studio")} onOpenDocument={() => navigate("document", "convert")} />}{page === "studio" && <StudioPage />}{page === "download" && <DownloadPage />}{page === "compress" && <CompressPage />}{page === "convert" && <DocumentPage />}{page === "split-pdf" && <SplitPdfPage />}{page === "merge-pdf" && <MergePdfPage />}{page === "about" && <AboutPage editor={editor} />}{page === "admin" && profile?.role === "admin" && <AdminPage />}</main>
     </div>
     {!profile && <div className="public-demo"><span><strong>Public Demo</strong><small>Bạn đang xem giao diện mẫu. Đăng nhập để sử dụng các chức năng xử lý.</small></span><button className="primary" onClick={() => setShowLogin(true)}>Đăng nhập để sử dụng</button></div>}
   </div>;
