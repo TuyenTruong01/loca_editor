@@ -26,9 +26,22 @@ export async function downloadVideo(url: string, quality: string, browser: strin
 }
 
 export async function compressVideo(file: File, preset: string, format: string) {
+  if (file.size > 80 * 1024 * 1024) return compressVideoInChunks(file, preset, format);
   const body = new FormData(); body.append("file", file); body.append("preset", preset); body.append("output_format", format);
   try { return (await videoApi.post<Blob>("/compression/process", body, { responseType: "blob", timeout: 0 })).data; }
   catch (error) { return await blobError(error, "Không thể nén video."); }
+}
+
+async function compressVideoInChunks(file: File, preset: string, format: string) {
+  try {
+    const started = await videoApi.post<{ upload_id: string }>("/compression/uploads", { filename: file.name, size: file.size });
+    const uploadId = started.data.upload_id; const chunkSize = 8 * 1024 * 1024;
+    for (let offset = 0, index = 0; offset < file.size; offset += chunkSize, index += 1) {
+      const body = new FormData(); body.append("index", String(index)); body.append("chunk", file.slice(offset, offset + chunkSize), `${file.name}.part-${index}`);
+      await videoApi.post(`/compression/uploads/${uploadId}/chunks`, body, { timeout: 0 });
+    }
+    return (await videoApi.post<Blob>(`/compression/uploads/${uploadId}/process`, { preset, format }, { responseType: "blob", timeout: 0 })).data;
+  } catch (error) { return await blobError(error, "Không thể tải lên hoặc nén video."); }
 }
 
 async function audioOperation(path: string, file: File) {
