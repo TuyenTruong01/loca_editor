@@ -1,4 +1,5 @@
-import { Clapperboard, Download, FileOutput, FileText, Gauge, Layers3, Scissors, VolumeX } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Clapperboard, Download, FileImage, FileOutput, FileText, Gauge, Layers3, PlayCircle, Scissors, VolumeX } from "lucide-react";
 
 const videoFeatures = [
   { icon: <Download />, title: "Download video", text: "Download a video from a direct URL and choose between 720p, 1080p, or original quality." },
@@ -16,6 +17,9 @@ const documentFeatures = [
 export default function AboutPage({ editor }: { editor: "video" | "document" }) {
   const video = editor === "video";
   const features = video ? videoFeatures : documentFeatures;
+  const [mediaMissing, setMediaMissing] = useState(false);
+  useEffect(() => setMediaMissing(false), [editor]);
+  const asset = `${import.meta.env.BASE_URL}assets/${video ? "video-editor-demo.mp4" : "document-editor-demo.png"}`;
   return <section className="about">
     <div className="about-hero">
       <span className="soft-icon">{video ? <Clapperboard /> : <FileText />}</span>
@@ -24,6 +28,15 @@ export default function AboutPage({ editor }: { editor: "video" | "document" }) 
       <p>{video
         ? "Video Editor brings video downloading, audio separation, and file compression together in one focused workspace."
         : "Document Editor provides document conversion, browser-based preview, and practical tools for splitting and merging PDF files."}</p>
+    </div>
+    <div className={`about-media ${video ? "video-demo" : "image-demo"}`}>
+      <div className="about-media-heading"><div><span className="eyebrow">PRODUCT DEMO</span><h3>{video ? "See Video Editor in action" : "Explore the Document Editor workspace"}</h3></div><span>{video ? "Demo video" : "Interface preview"}</span></div>
+      <div className="about-media-frame">
+        {!mediaMissing && (video
+          ? <video src={asset} controls preload="metadata" onError={() => setMediaMissing(true)}>Your browser does not support video playback.</video>
+          : <img src={asset} alt="Loca Document Editor interface" onError={() => setMediaMissing(true)} />)}
+        {mediaMissing && <div className="about-media-placeholder">{video ? <PlayCircle /> : <FileImage />}<strong>{video ? "Demo video coming soon" : "Interface image coming soon"}</strong><p>Add <code>{video ? "video-editor-demo.mp4" : "document-editor-demo.png"}</code> to <code>public/assets</code>.</p></div>}
+      </div>
     </div>
     <div className={`about-cards ${video ? "three" : "four"}`}>
       {features.map(feature => <article className="card" key={feature.title}>
