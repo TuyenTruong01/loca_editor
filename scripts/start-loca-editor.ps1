@@ -23,14 +23,17 @@ if (-not ($videoReady -and $documentReady)) {
 if (-not (Test-Endpoint "http://127.0.0.1:5173")) {
   $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
   $startInfo.FileName = "npm.cmd"
-  $startInfo.Arguments = "run dev"
+  # Keep the launcher and Vite on the same fixed port. Without strictPort,
+  # Vite can silently move to 5174 while this script continues checking 5173.
+  $startInfo.Arguments = "run dev -- --port 5173 --strictPort"
   $startInfo.WorkingDirectory = $projectRoot
   $startInfo.UseShellExecute = $true
   $startInfo.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
   $frontend = [System.Diagnostics.Process]::Start($startInfo)
   @{ frontend = $frontend.Id } | ConvertTo-Json | Set-Content -LiteralPath $frontendPidFile -Encoding UTF8
 
-  $deadline = (Get-Date).AddSeconds(25)
+  # The first Vite startup can take longer while dependencies are optimized.
+  $deadline = (Get-Date).AddSeconds(90)
   do {
     Start-Sleep -Milliseconds 500
     if ($frontend.HasExited) {
