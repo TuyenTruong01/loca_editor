@@ -9,7 +9,7 @@ const videoFeatures = [
 ];
 
 const documentFeatures = [
-  { icon: <FileOutput />, title: "Convert documents", text: "Convert PDF, image, Word, Excel, PowerPoint, and DXF files to Word, Excel, PowerPoint, searchable PDF, or TXT." },
+  { icon: <FileOutput />, title: "Convert documents", text: "Convert PDF, PNG, JPG, TIFF, and BMP files to Word, Excel, PowerPoint, searchable PDF, or TXT." },
   { icon: <FileText />, title: "Preview documents", text: "Preview PDF and image files in the browser, adjust image zoom, and open the preview in full-screen mode." },
   { icon: <Scissors />, title: "Split PDF", text: "Select individual pages or page ranges, combine them into one PDF, or export separate groups as PDF or ZIP files." },
   { icon: <Layers3 />, title: "Merge PDF", text: "Add multiple PDF files, drag them into the required order, preview each file, and merge them into one document." },
