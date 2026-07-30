@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { Clapperboard, Download, FileImage, FileOutput, FileText, Gauge, Layers3, PlayCircle, Scissors, VolumeX } from "lucide-react";
+import { Clapperboard, Download, FileImage, FileOutput, FileText, Gauge, Layers3, PlayCircle, RotateCw, Scissors, VolumeX } from "lucide-react";
 
 const videoFeatures = [
   { icon: <Download />, title: "Download video", text: "Download a video from a direct URL and choose between 720p, 1080p, or original quality." },
   { icon: <VolumeX />, title: "Separate video and audio", text: "Upload a video to create two independent outputs: a muted video file and an audio-only MP3 file." },
   { icon: <Gauge />, title: "Compress video", text: "Reduce video file size with Light, Balanced, or Maximum compression and export as MP4, MOV, MKV, or WebM." },
+  { icon: <RotateCw />, title: "Rotate and mirror video", text: "Rotate a video left or right in 90-degree steps, mirror it horizontally, preview the orientation, and save an MP4 copy." },
 ];
 
 const documentFeatures = [
@@ -12,6 +13,7 @@ const documentFeatures = [
   { icon: <FileText />, title: "Preview documents", text: "Preview PDF and image files in the browser, adjust image zoom, and open the preview in full-screen mode." },
   { icon: <Scissors />, title: "Split PDF", text: "Select individual pages or page ranges, combine them into one PDF, or export separate groups as PDF or ZIP files." },
   { icon: <Layers3 />, title: "Merge PDF", text: "Add multiple PDF files, drag them into the required order, preview each file, and merge them into one document." },
+  { icon: <RotateCw />, title: "Rotate PDF", text: "Rotate all pages or selected page ranges left, right, or 180 degrees and preview the processed PDF before saving." },
 ];
 
 export default function AboutPage({ editor }: { editor: "video" | "document" }) {
@@ -38,7 +40,7 @@ export default function AboutPage({ editor }: { editor: "video" | "document" }) 
         {mediaMissing && <div className="about-media-placeholder">{video ? <PlayCircle /> : <FileImage />}<strong>{video ? "Demo video coming soon" : "Interface image coming soon"}</strong><p>Add <code>{video ? "video-editor-demo.mp4" : "document-editor-demo.png"}</code> to <code>public/assets</code>.</p></div>}
       </div>
     </div>
-    <div className={`about-cards ${video ? "three" : "four"}`}>
+    <div className="about-cards four">
       {features.map(feature => <article className="card" key={feature.title}>
         {feature.icon}<h3>{feature.title}</h3><p>{feature.text}</p>
       </article>)}

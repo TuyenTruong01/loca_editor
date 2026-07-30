@@ -1,6 +1,13 @@
 import os
 import sys
+import shutil
+import tempfile
+from pathlib import Path
+from typing import Annotated
 
+import fitz
+from fastapi import BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
@@ -27,6 +34,41 @@ def validate_practical_docx(self, path):
 DocxInspector.validate_editable = validate_practical_docx
 
 from app import app  # noqa: E402
+from api.pdf_tools import _page_count, _parse_ranges, _read_pdf, _safe_name  # noqa: E402
+from core.auth import AccessUser, require_ready_user  # noqa: E402
+
+
+@app.post("/api/pdf/rotate")
+async def rotate_pdf(
+    background_tasks: BackgroundTasks,
+    user: Annotated[AccessUser, Depends(require_ready_user)],
+    file: UploadFile = File(...),
+    rotation: int = Form(...),
+    page_ranges: str = Form(""),
+    output_name: str = Form(""),
+):
+    del user
+    if rotation not in {-90, 90, 180}:
+        raise HTTPException(status_code=400, detail="Rotation must be -90, 90, or 180 degrees.")
+    data = await _read_pdf(file)
+    total_pages = _page_count(data)
+    selected = set(range(1, total_pages + 1))
+    if page_ranges.strip():
+        selected = {page for group in _parse_ranges(page_ranges, total_pages) for page in group}
+    work = Path(tempfile.mkdtemp(prefix="loca_pdf_rotate_"))
+    filename = _safe_name(output_name, f"{Path(file.filename or 'document').stem}_rotated", ".pdf")
+    output = work / filename
+    try:
+        with fitz.open(stream=data, filetype="pdf") as document:
+            for page_number in selected:
+                page = document.load_page(page_number - 1)
+                page.set_rotation((page.rotation + rotation) % 360)
+            document.save(output, garbage=4, deflate=True)
+        background_tasks.add_task(shutil.rmtree, work, ignore_errors=True)
+        return FileResponse(output, media_type="application/pdf", filename=filename, background=background_tasks)
+    except Exception:
+        shutil.rmtree(work, ignore_errors=True)
+        raise
 
 
 @app.exception_handler(Exception)

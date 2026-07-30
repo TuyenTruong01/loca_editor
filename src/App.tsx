@@ -5,6 +5,8 @@ import CompressPage from "./pages/CompressPage";
 import DocumentPage from "./pages/DocumentPage";
 import SplitPdfPage from "./pages/SplitPdfPage";
 import MergePdfPage from "./pages/MergePdfPage";
+import RotateVideoPage from "./pages/RotateVideoPage";
+import RotatePdfPage from "./pages/RotatePdfPage";
 import AboutPage from "./pages/AboutPage";
 import LoginPage from "./pages/LoginPage";
 import PasswordChangePage from "./pages/PasswordChangePage";
@@ -14,12 +16,12 @@ import { useAuth } from "./contexts/AuthContext";
 import { isPasswordRecovery } from "./services/supabaseAuth";
 
 type Editor = "video" | "document";
-type Page = "home" | "download" | "compress" | "convert" | "split-pdf" | "merge-pdf" | "about" | "admin";
+type Page = "home" | "download" | "compress" | "rotate-video" | "convert" | "split-pdf" | "merge-pdf" | "rotate-pdf" | "about" | "admin";
 type LocationState = { editor: Editor; page: Page };
 
 const tabs: Record<Editor, { id: Page; label: string }[]> = {
-  video: [{ id: "download", label: "Download Video" }, { id: "compress", label: "Compress Video" }, { id: "about", label: "About" }],
-  document: [{ id: "convert", label: "Convert Document" }, { id: "split-pdf", label: "Split PDF" }, { id: "merge-pdf", label: "Merge PDF" }, { id: "about", label: "About" }],
+  video: [{ id: "download", label: "Download Video" }, { id: "compress", label: "Compress Video" }, { id: "rotate-video", label: "Rotate Video" }, { id: "about", label: "About" }],
+  document: [{ id: "convert", label: "Convert Document" }, { id: "split-pdf", label: "Split PDF" }, { id: "merge-pdf", label: "Merge PDF" }, { id: "rotate-pdf", label: "Rotate PDF" }, { id: "about", label: "About" }],
 };
 const routeFor = (editor: Editor, page: Page) => page === "home" ? "/" : page === "admin" ? "/admin" : `/${editor}/${page}`;
 function readLocation(): LocationState {
@@ -28,9 +30,11 @@ function readLocation(): LocationState {
   if (path === "/admin") return { editor: "document", page: "admin" };
   if (path === "/document/split-pdf") return { editor: "document", page: "split-pdf" };
   if (path === "/document/merge-pdf") return { editor: "document", page: "merge-pdf" };
+  if (path === "/document/rotate-pdf") return { editor: "document", page: "rotate-pdf" };
   if (path === "/document/about") return { editor: "document", page: "about" };
   if (path.startsWith("/document")) return { editor: "document", page: "convert" };
   if (path === "/video/compress") return { editor: "video", page: "compress" };
+  if (path === "/video/rotate-video") return { editor: "video", page: "rotate-video" };
   if (path === "/video/about") return { editor: "video", page: "about" };
   return { editor: "video", page: "download" };
 }
@@ -53,7 +57,7 @@ export default function App() {
       {profile?.role === "admin" && <button className={page === "admin" ? "active admin-nav" : "admin-nav"} onClick={() => navigate(editor, "admin")}><ShieldCheck /><span><strong>Administration</strong><small>Accounts and permissions</small></span></button>}
       <div className="sidebar-account">{profile ? <><div className="sidebar-user"><UserRound/><span><strong>{profile.email}</strong><small>{profile.role}</small></span></div><button onClick={() => void signOut()}><LogOut/> Sign out</button></> : <button className="sidebar-login" onClick={() => setShowLogin(true)}><UserRound/> Sign in</button>}</div>
       <div className="sidebar-foot"><Info size={15} /><span>Designed by Tuyen Truong · © 2026</span></div></aside>
-      <main className="main">{page === "home" && <HomePage onOpenVideo={() => navigate("video", "download")} onOpenDocument={() => navigate("document", "convert")} />}{page === "download" && <DownloadPage />}{page === "compress" && <CompressPage />}{page === "convert" && <DocumentPage />}{page === "split-pdf" && <SplitPdfPage />}{page === "merge-pdf" && <MergePdfPage />}{page === "about" && <AboutPage editor={editor} />}{page === "admin" && profile?.role === "admin" && <AdminPage />}</main>
+      <main className="main">{page === "home" && <HomePage onOpenVideo={() => navigate("video", "download")} onOpenDocument={() => navigate("document", "convert")} />}{page === "download" && <DownloadPage />}{page === "compress" && <CompressPage />}{page === "rotate-video" && <RotateVideoPage />}{page === "convert" && <DocumentPage />}{page === "split-pdf" && <SplitPdfPage />}{page === "merge-pdf" && <MergePdfPage />}{page === "rotate-pdf" && <RotatePdfPage />}{page === "about" && <AboutPage editor={editor} />}{page === "admin" && profile?.role === "admin" && <AdminPage />}</main>
     </div>
     {!profile && <div className="public-demo"><span><strong>Public Demo</strong><small>You are viewing a sample interface. Sign in to use processing features.</small></span><button className="primary" onClick={() => setShowLogin(true)}>Sign in to continue</button></div>}
   </div>;

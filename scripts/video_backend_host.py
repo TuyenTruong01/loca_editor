@@ -13,10 +13,48 @@ sys.path.insert(0, backend_path)
 
 from app.main import create_app  # noqa: E402
 from app.core.auth import AccessUser, require_ready_user  # noqa: E402
-from app.services.media.processing_service import compress_video, remove_workspace, workspace  # noqa: E402
+from app.services.media.processing_service import compress_video, remove_workspace, run_ffmpeg, save_upload, workspace  # noqa: E402
 
 app = create_app()
 chunk_uploads: dict[str, dict] = {}
+
+
+@app.post("/api/video/rotate")
+async def rotate_video(
+    background_tasks: BackgroundTasks,
+    user: Annotated[AccessUser, Depends(require_ready_user)],
+    file: UploadFile = File(...),
+    rotation: int = Form(0),
+    mirror: bool = Form(False),
+):
+    del user
+    if rotation not in {0, 90, 180, 270}:
+        raise HTTPException(status_code=400, detail="Rotation must be 0, 90, 180, or 270 degrees.")
+    job_dir = workspace()
+    source = job_dir / f"source{Path(file.filename or 'video.mp4').suffix or '.mp4'}"
+    output = job_dir / "loca-rotated.mp4"
+    try:
+        await save_upload(file, source)
+        filters: list[str] = []
+        if mirror:
+            filters.append("hflip")
+        if rotation == 90:
+            filters.append("transpose=1")
+        elif rotation == 180:
+            filters.extend(["hflip", "vflip"])
+        elif rotation == 270:
+            filters.append("transpose=2")
+        args = ["-i", str(source), "-map", "0:v:0", "-map", "0:a?"]
+        if filters:
+            args += ["-vf", ",".join(filters)]
+        args += ["-c:v", "libx264", "-crf", "20", "-preset", "medium", "-pix_fmt", "yuv420p",
+                 "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", str(output)]
+        run_ffmpeg(args)
+        background_tasks.add_task(remove_workspace, job_dir)
+        return FileResponse(output, filename=output.name, media_type="video/mp4", background=background_tasks)
+    except Exception as exc:
+        remove_workspace(job_dir)
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.post("/api/compression/uploads")
