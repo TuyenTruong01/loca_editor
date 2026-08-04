@@ -49,6 +49,7 @@ app.add_middleware(
 
 chunk_uploads: dict[str, dict] = {}
 download_jobs: dict[str, dict] = {}
+compression_jobs: dict[str, dict] = {}
 
 
 def _download_job(job_id: str, url: str, quality: str, cookie_browser: str) -> None:
@@ -110,6 +111,34 @@ def _owned_download_job(job_id: str, user: AccessUser) -> dict:
     return job
 
 
+def _compression_job(job_id: str, preset: str, output_format: str) -> None:
+    job = compression_jobs[job_id]
+    job["status"] = "running"
+    job["started_at"] = datetime.now(timezone.utc).isoformat()
+    job_dir = Path(job["job_dir"])
+    try:
+        if output_format not in {"mp4", "mov", "mkv", "webm"}:
+            raise ValueError("The requested output format is not supported.")
+        output = job_dir / f"loca-compressed.{output_format}"
+        compress_video(Path(job["source"]), output, preset)
+        job["output"] = str(output)
+        job["filename"] = output.name
+        job["status"] = "completed"
+    except Exception as exc:
+        job["status"] = "failed"
+        job["error"] = str(exc)
+        remove_workspace(job_dir)
+    finally:
+        job["finished_at"] = datetime.now(timezone.utc).isoformat()
+
+
+def _owned_compression_job(job_id: str, user: AccessUser) -> dict:
+    job = compression_jobs.get(job_id)
+    if not job or job["owner"] != user.user_id:
+        raise HTTPException(status_code=404, detail="Compression job was not found.")
+    return job
+
+
 @app.post("/api/downloads/jobs", status_code=202)
 async def create_download_job(
     background_tasks: BackgroundTasks,
@@ -158,6 +187,72 @@ async def download_job_result(
         raise HTTPException(status_code=404, detail="The downloaded video file is no longer available.")
     background_tasks.add_task(remove_workspace, Path(job["job_dir"]))
     background_tasks.add_task(download_jobs.pop, job_id, None)
+    return FileResponse(
+        output,
+        filename=job["filename"],
+        media_type="application/octet-stream",
+        background=background_tasks,
+    )
+
+
+@app.post("/api/compression/uploads/{upload_id}/jobs", status_code=202)
+async def create_compression_job(
+    upload_id: str,
+    payload: dict,
+    background_tasks: BackgroundTasks,
+    user: Annotated[AccessUser, Depends(require_ready_user)],
+):
+    upload = chunk_uploads.pop(upload_id, None)
+    if not upload or upload["owner"] != user.user_id:
+        raise HTTPException(status_code=404, detail="The video upload session was not found or has expired.")
+    if not Path(upload["source"]).exists():
+        remove_workspace(upload["job_dir"])
+        raise HTTPException(status_code=400, detail="No uploaded video data was found.")
+    job_id = uuid4().hex
+    compression_jobs[job_id] = {
+        "job_id": job_id,
+        "owner": user.user_id,
+        "status": "queued",
+        "job_dir": str(upload["job_dir"]),
+        "source": str(upload["source"]),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    background_tasks.add_task(
+        _compression_job,
+        job_id,
+        str(payload.get("preset") or "balanced"),
+        str(payload.get("format") or "mp4").lower(),
+    )
+    return {"job_id": job_id, "status": "queued"}
+
+
+@app.get("/api/compression/jobs/{job_id}/status")
+async def compression_job_status(job_id: str, user: Annotated[AccessUser, Depends(require_ready_user)]):
+    job = _owned_compression_job(job_id, user)
+    return {
+        "job_id": job_id,
+        "status": job["status"],
+        "filename": job.get("filename"),
+        "error": job.get("error"),
+    }
+
+
+@app.get("/api/compression/jobs/{job_id}/result")
+async def compression_job_result(
+    job_id: str,
+    background_tasks: BackgroundTasks,
+    user: Annotated[AccessUser, Depends(require_ready_user)],
+):
+    job = _owned_compression_job(job_id, user)
+    if job["status"] == "failed":
+        raise HTTPException(status_code=400, detail=job.get("error") or "Video compression failed.")
+    if job["status"] != "completed":
+        raise HTTPException(status_code=409, detail="Video compression is not complete yet.")
+    output = Path(job["output"])
+    if not output.exists():
+        raise HTTPException(status_code=404, detail="The compressed video is no longer available.")
+    background_tasks.add_task(remove_workspace, Path(job["job_dir"]))
+    background_tasks.add_task(compression_jobs.pop, job_id, None)
     return FileResponse(
         output,
         filename=job["filename"],
