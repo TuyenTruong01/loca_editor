@@ -1,0 +1,269 @@
+{
+  "source": "C:\\Users\\Coding\\AppData\\Local\\Temp\\codex-clipboard-3daf01b1-a0bc-4018-87d2-dd3b8ede6819.png",
+  "pages": [
+    {
+      "page": 1,
+      "width": 550,
+      "height": 781,
+      "overlay_path": "D:\\Phong lam viec\\LocaEditor_Frontend\\artifacts\\diagnostics\\image-layout-diagnostic\\page-1-overlay.png",
+      "blocks": [
+        {
+          "type": "HeaderBlock",
+          "source_type": "header",
+          "bbox": [
+            48,
+            38,
+            134,
+            48
+          ],
+          "confidence": 0.95,
+          "layout_confidence": 0.75,
+          "reading_order": 0,
+          "text": "Maintenance",
+          "image_path": null,
+          "table_rows": []
+        },
+        {
+          "type": "LineBlock",
+          "source_type": "separator_line",
+          "bbox": [
+            49,
+            55,
+            498,
+            57
+          ],
+          "confidence": 0.9,
+          "layout_confidence": 0.9,
+          "reading_order": 1,
+          "text": "",
+          "image_path": null,
+          "table_rows": []
+        },
+        {
+          "type": "FigureBlock",
+          "source_type": "image",
+          "bbox": [
+            188,
+            90,
+            438,
+            277
+          ],
+          "confidence": 0.65,
+          "layout_confidence": 0.65,
+          "reading_order": 2,
+          "text": "",
+          "image_path": "C:\\Users\\Coding\\AppData\\Local\\Temp\\loca_figure_codex-clipboard-3daf01b1-a0bc-4018-87d2-dd3b8ede6819_0_5f3a8e2ad2624c9cbf5e0d04db048e31.png",
+          "table_rows": []
+        },
+        {
+          "type": "FigureBlock",
+          "source_type": "image",
+          "bbox": [
+            172,
+            308,
+            417,
+            482
+          ],
+          "confidence": 0.65,
+          "layout_confidence": 0.65,
+          "reading_order": 3,
+          "text": "",
+          "image_path": "C:\\Users\\Coding\\AppData\\Local\\Temp\\loca_figure_codex-clipboard-3daf01b1-a0bc-4018-87d2-dd3b8ede6819_1_321a1a4fc5b640e2959ae8f730bcde52.png",
+          "table_rows": []
+        },
+        {
+          "type": "FigureBlock",
+          "source_type": "image",
+          "bbox": [
+            364,
+            308,
+            550,
+            466
+          ],
+          "confidence": 0.65,
+          "layout_confidence": 0.65,
+          "reading_order": 4,
+          "text": "",
+          "image_path": "C:\\Users\\Coding\\AppData\\Local\\Temp\\loca_figure_codex-clipboard-3daf01b1-a0bc-4018-87d2-dd3b8ede6819_2_b78d6ae778474b7fa583f2e805fdd125.png",
+          "table_rows": []
+        },
+        {
+          "type": "TextBlock",
+          "source_type": "list",
+          "bbox": [
+            159,
+            472,
+            489,
+            559
+          ],
+          "confidence": 0.5503,
+          "layout_confidence": 0.75,
+          "reading_order": 5,
+          "text": "3) Loosen znd remove the bolts s show in the figures aoe\n) Use the remaining fou balls t open the het exchanger. On the larger\n‘unt exchangers these balls ae equipped wih bezring boxes.\nTỞ Pairs a bolts ae openedalterztely and diagonally nt seps, sae\n‘gues below,",
+          "image_path": null,
+          "table_rows": []
+        },
+        {
+          "type": "TableBlock",
+          "source_type": "table_image",
+          "bbox": [
+            228,
+            564,
+            422,
+            619
+          ],
+          "confidence": 0.5536,
+          "layout_confidence": 0.5536,
+          "reading_order": 6,
+          "text": "",
+          "image_path": "C:\\Users\\Coding\\AppData\\Local\\Temp\\loca_image_table_codex-clipboard-3daf01b1-a0bc-4018-87d2-dd3b8ede6819_6f7b2c39fc3b47a08fdf709e04f979db.png",
+          "table_rows": []
+        },
+        {
+          "type": "TextBlock",
+          "source_type": "paragraph",
+          "bbox": [
+            177,
+            622,
+            463,
+            650
+          ],
+          "confidence": 0.6058,
+          "layout_confidence": 0.75,
+          "reading_order": 7,
+          "text": "[Be cael sothatthe frame plate and pressure plat ae aba",
+          "image_path": null,
+          "table_rows": []
+        },
+        {
+          "type": "TextBlock",
+          "source_type": "paragraph",
+          "bbox": [
+            176,
+            637,
+            489,
+            665
+          ],
+          "confidence": 0.596,
+          "layout_confidence": 0.75,
+          "reading_order": 8,
+          "text": "‘parall. Skening of the pressure plate during opening mast not exceed",
+          "image_path": null,
+          "table_rows": []
+        },
+        {
+          "type": "TextBlock",
+          "source_type": "paragraph",
+          "bbox": [
+            177,
+            650,
+            488,
+            678
+          ],
+          "confidence": 0.5173,
+          "layout_confidence": 0.75,
+          "reading_order": 9,
+          "text": "‘10mm Ö tums perbolt) across th wth znd 25 mma Ở tans per ball)",
+          "image_path": null,
+          "table_rows": []
+        },
+        {
+          "type": "TextBlock",
+          "source_type": "paragraph",
+          "bbox": [
+            461,
+            689,
+            498,
+            699
+          ],
+          "confidence": 0.68,
+          "layout_confidence": 0.75,
+          "reading_order": 10,
+          "text": "(ont)",
+          "image_path": null,
+          "table_rows": []
+        },
+        {
+          "type": "FooterBlock",
+          "source_type": "page_number",
+          "bbox": [
+            0,
+            702,
+            44,
+            765
+          ],
+          "confidence": 0.6,
+          "layout_confidence": 0.75,
+          "reading_order": 11,
+          "text": "6",
+          "image_path": null,
+          "table_rows": []
+        },
+        {
+          "type": "FooterBlock",
+          "source_type": "footer_logo",
+          "bbox": [
+            342,
+            712,
+            493,
+            764
+          ],
+          "confidence": 0.7,
+          "layout_confidence": 0.7,
+          "reading_order": 12,
+          "text": "",
+          "image_path": "C:\\Users\\Coding\\AppData\\Local\\Temp\\loca_footer_logo_codex-clipboard-3daf01b1-a0bc-4018-87d2-dd3b8ede6819_218994cdbf0a497282444dc23899c6c9.png",
+          "table_rows": []
+        },
+        {
+          "type": "LineBlock",
+          "source_type": "separator_line",
+          "bbox": [
+            48,
+            725,
+            499,
+            726
+          ],
+          "confidence": 0.9,
+          "layout_confidence": 0.9,
+          "reading_order": 13,
+          "text": "",
+          "image_path": null,
+          "table_rows": []
+        },
+        {
+          "type": "FooterBlock",
+          "source_type": "footer",
+          "bbox": [
+            420,
+            732,
+            474,
+            745
+          ],
+          "confidence": 0.625,
+          "layout_confidence": 0.75,
+          "reading_order": 14,
+          "text": "Ay Tetra",
+          "image_path": null,
+          "table_rows": []
+        },
+        {
+          "type": "FooterBlock",
+          "source_type": "footer",
+          "bbox": [
+            163,
+            734,
+            272,
+            742
+          ],
+          "confidence": 0.7133,
+          "layout_confidence": 0.75,
+          "reading_order": 15,
+          "text": "‘Doe No, 12209720101",
+          "image_path": null,
+          "table_rows": []
+        }
+      ]
+    }
+  ]
+}

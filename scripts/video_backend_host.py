@@ -1,11 +1,14 @@
 import os
+import re
 import sys
 import shutil
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated
 from uuid import uuid4
 
 from fastapi import BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 backend_path = os.environ["LOCA_VIDEO_BACKEND_PATH"]
@@ -13,10 +16,154 @@ sys.path.insert(0, backend_path)
 
 from app.main import create_app  # noqa: E402
 from app.core.auth import AccessUser, require_ready_user  # noqa: E402
+from app.core.config import PROJECT_ROOT  # noqa: E402
+from app.services.downloader.direct_service import download_direct  # noqa: E402
+from app.services.downloader.ytdlp_service import YtDlpService  # noqa: E402
 from app.services.media.processing_service import compress_video, remove_workspace, run_ffmpeg, save_upload, workspace  # noqa: E402
+from app.services.system.tool_checker import _find_executable  # noqa: E402
 
 app = create_app()
+
+# Keep the public API CORS contract explicit at the host that uvicorn actually
+# serves. The upstream application also has CORS support, but its origins come
+# from runtime settings. This outer middleware guarantees that the Vercel app
+# and both supported local development origins receive CORS headers on every
+# /api response, including OPTIONS preflight and error responses.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://loca-editor.vercel.app",
+        "http://127.0.0.1:5173",
+        "http://localhost:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Content-Type",
+        "Authorization",
+        "Accept",
+        "Range",
+        "X-Requested-With",
+    ],
+)
+
 chunk_uploads: dict[str, dict] = {}
+download_jobs: dict[str, dict] = {}
+
+
+def _download_job(job_id: str, url: str, quality: str, cookie_browser: str) -> None:
+    job = download_jobs[job_id]
+    job["status"] = "running"
+    job["started_at"] = datetime.now(timezone.utc).isoformat()
+    job_dir = Path(job["job_dir"])
+    try:
+        height = {"small": "720", "balanced": "1080", "best": "2160"}.get(quality, "1080")
+        output_template = str(job_dir / "%(title).160B.%(ext)s")
+        ffmpeg, _ = _find_executable("ffmpeg")
+        deno = PROJECT_ROOT / "backend/binaries/deno/deno.exe"
+        args = [
+            "--no-playlist", "--restrict-filenames", "--merge-output-format", "mp4",
+            "--extractor-retries", "3", "--fragment-retries", "3",
+        ]
+        if ffmpeg:
+            args += ["--ffmpeg-location", str(ffmpeg.parent)]
+        if deno.exists():
+            args += ["--js-runtimes", f"deno:{deno}"]
+        args += [
+            "-f", f"bv*[height<={height}]+ba/b[height<={height}]/b",
+            "-o", output_template,
+            "--print", "after_move:filepath",
+        ]
+        if cookie_browser in {"chrome", "edge", "firefox", "brave"}:
+            args += ["--cookies-from-browser", cookie_browser]
+        args.append(url)
+
+        output = download_direct(url, job_dir)
+        if output is None:
+            result = YtDlpService().run(args, timeout=7200)
+            if result.returncode != 0 and cookie_browser == "none" and "Sign in to confirm" in result.stderr:
+                android_args = [*args[:-1], "--extractor-args", "youtube:player_client=android", url]
+                result = YtDlpService().run(android_args, timeout=7200)
+            if result.returncode != 0:
+                raw_error = result.stderr.strip()
+                raise RuntimeError(raw_error.splitlines()[-1] if raw_error else "Could not download the video.")
+            lines = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+            output = Path(lines[-1]) if lines else next(job_dir.glob("*"))
+
+        if not output.exists() or output.parent.resolve() != job_dir.resolve():
+            raise RuntimeError("The downloaded video file was not found.")
+        job["output"] = str(output)
+        job["filename"] = re.sub(r"[^\w. -]", "_", output.name)
+        job["status"] = "completed"
+    except Exception as exc:
+        job["status"] = "failed"
+        job["error"] = str(exc)
+        remove_workspace(job_dir)
+    finally:
+        job["finished_at"] = datetime.now(timezone.utc).isoformat()
+
+
+def _owned_download_job(job_id: str, user: AccessUser) -> dict:
+    job = download_jobs.get(job_id)
+    if not job or job["owner"] != user.user_id:
+        raise HTTPException(status_code=404, detail="Download job was not found.")
+    return job
+
+
+@app.post("/api/downloads/jobs", status_code=202)
+async def create_download_job(
+    background_tasks: BackgroundTasks,
+    user: Annotated[AccessUser, Depends(require_ready_user)],
+    url: str = Form(...),
+    quality: str = Form("balanced"),
+    cookie_browser: str = Form("none"),
+):
+    job_id = uuid4().hex
+    job_dir = workspace()
+    download_jobs[job_id] = {
+        "job_id": job_id,
+        "owner": user.user_id,
+        "status": "queued",
+        "job_dir": str(job_dir),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    background_tasks.add_task(_download_job, job_id, url, quality, cookie_browser)
+    return {"job_id": job_id, "status": "queued"}
+
+
+@app.get("/api/downloads/jobs/{job_id}/status")
+async def download_job_status(job_id: str, user: Annotated[AccessUser, Depends(require_ready_user)]):
+    job = _owned_download_job(job_id, user)
+    return {
+        "job_id": job_id,
+        "status": job["status"],
+        "filename": job.get("filename"),
+        "error": job.get("error"),
+    }
+
+
+@app.get("/api/downloads/jobs/{job_id}/result")
+async def download_job_result(
+    job_id: str,
+    background_tasks: BackgroundTasks,
+    user: Annotated[AccessUser, Depends(require_ready_user)],
+):
+    job = _owned_download_job(job_id, user)
+    if job["status"] == "failed":
+        raise HTTPException(status_code=400, detail=job.get("error") or "Video download failed.")
+    if job["status"] != "completed":
+        raise HTTPException(status_code=409, detail="The video download is not complete yet.")
+    output = Path(job["output"])
+    if not output.exists():
+        raise HTTPException(status_code=404, detail="The downloaded video file is no longer available.")
+    background_tasks.add_task(remove_workspace, Path(job["job_dir"]))
+    background_tasks.add_task(download_jobs.pop, job_id, None)
+    return FileResponse(
+        output,
+        filename=job["filename"],
+        media_type="application/octet-stream",
+        background=background_tasks,
+    )
 
 
 @app.post("/api/video/rotate")
