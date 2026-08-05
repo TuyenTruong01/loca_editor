@@ -3,7 +3,10 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./styles.css";
 import { AuthProvider } from "./contexts/AuthContext";
+import { loadRuntimeConfig } from "./runtimeConfig";
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode><AuthProvider><App /></AuthProvider></StrictMode>,
-);
+void loadRuntimeConfig().finally(() => {
+  createRoot(document.getElementById("root")!).render(
+    <StrictMode><AuthProvider><App /></AuthProvider></StrictMode>,
+  );
+});

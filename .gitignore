@@ -11,6 +11,7 @@ dist/
 
 # Local backend runtimes, logs and process data
 .runtime/
+artifacts/
 *.log
 *.pid
 

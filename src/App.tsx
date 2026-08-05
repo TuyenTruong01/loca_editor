@@ -14,6 +14,7 @@ import AdminPage from "./pages/AdminPage";
 import HomePage from "./pages/HomePage";
 import { useAuth } from "./contexts/AuthContext";
 import { isPasswordRecovery } from "./services/supabaseAuth";
+import { isDesktopMode } from "./runtimeConfig";
 
 type Editor = "video" | "document";
 type Page = "home" | "download" | "compress" | "rotate-video" | "convert" | "split-pdf" | "merge-pdf" | "rotate-pdf" | "about" | "admin";
@@ -40,12 +41,12 @@ function readLocation(): LocationState {
 }
 
 export default function App() {
-  const { session, profile, loading, signOut } = useAuth(); const initial = readLocation(); const [editor, setEditor] = useState<Editor>(initial.editor); const [page, setPage] = useState<Page>(initial.page); const [menuOpen, setMenuOpen] = useState(false); const [showLogin, setShowLogin] = useState(false);
+  const desktop = isDesktopMode(); const { session, profile, loading, signOut } = useAuth(); const initial = readLocation(); const [editor, setEditor] = useState<Editor>(initial.editor); const [page, setPage] = useState<Page>(initial.page); const [menuOpen, setMenuOpen] = useState(false); const [showLogin, setShowLogin] = useState(false);
   useEffect(() => { const pop = () => { const next = readLocation(); setEditor(next.editor); setPage(next.page); }; window.addEventListener("popstate", pop); return () => window.removeEventListener("popstate", pop); }, []);
   useEffect(() => { if (!loading && page === "admin" && profile?.role !== "admin") { setPage("home"); window.history.replaceState({}, "", "/"); } }, [loading, profile, page]);
   if (loading) return <main className="auth-loading"><img src={`${import.meta.env.BASE_URL}assets/logo.png`} alt="Loca Editor" /><p>Verifying your account...</p></main>;
   if (showLogin && (!session || !profile)) return <LoginPage onBack={() => setShowLogin(false)} />;
-  if (profile?.force_password_change || (session && isPasswordRecovery())) return <PasswordChangePage />;
+  if (!desktop && (profile?.force_password_change || (session && isPasswordRecovery()))) return <PasswordChangePage />;
   function navigate(nextEditor: Editor, nextPage: Page) { if (nextPage === "admin" && profile?.role !== "admin") return; setEditor(nextEditor); setPage(nextPage); setMenuOpen(false); window.history.pushState({}, "", routeFor(nextEditor, nextPage)); }
   function chooseEditor(next: Editor) { navigate(next, next === "video" ? "download" : "convert"); }
   return <div className="app-shell">
@@ -55,7 +56,7 @@ export default function App() {
       <button className={page !== "admin" && page !== "home" && editor === "video" ? "active" : ""} onClick={() => chooseEditor("video")}><Clapperboard /><span><strong>Video Editor</strong><small>Download and optimize video</small></span></button>
       <button className={page !== "admin" && page !== "home" && editor === "document" ? "active" : ""} onClick={() => chooseEditor("document")}><FileText /><span><strong>Document Editor</strong><small>Convert and process documents</small></span></button>
       {profile?.role === "admin" && <button className={page === "admin" ? "active admin-nav" : "admin-nav"} onClick={() => navigate(editor, "admin")}><ShieldCheck /><span><strong>Administration</strong><small>Accounts and permissions</small></span></button>}
-      <div className="sidebar-account">{profile ? <><div className="sidebar-user"><UserRound/><span><strong>{profile.email}</strong><small>{profile.role}</small></span></div><button onClick={() => void signOut()}><LogOut/> Sign out</button></> : <button className="sidebar-login" onClick={() => setShowLogin(true)}><UserRound/> Sign in</button>}</div>
+      <div className="sidebar-account">{desktop ? <div className="sidebar-user"><UserRound/><span><strong>Local desktop</strong><small>Ready to use</small></span></div> : profile ? <><div className="sidebar-user"><UserRound/><span><strong>{profile.role === "admin" ? "Admin" : "User"}</strong></span></div><button onClick={() => void signOut()}><LogOut/> Sign out</button></> : <button className="sidebar-login" onClick={() => setShowLogin(true)}><UserRound/> Sign in</button>}</div>
       <div className="sidebar-foot"><Info size={15} /><span>Designed by Tuyen Truong · © 2026</span></div></aside>
       <main className="main">{!profile && <div className="public-demo"><span className="demo-icon"><ShieldCheck /></span><span className="demo-copy"><strong>Guest preview</strong><small>Explore the complete interface. Sign in when you are ready to process files.</small></span><button className="primary" onClick={() => setShowLogin(true)}><UserRound /> Sign in</button></div>}{page === "home" && <HomePage onOpenVideo={() => navigate("video", "download")} onOpenDocument={() => navigate("document", "convert")} />}{page === "download" && <DownloadPage />}{page === "compress" && <CompressPage />}{page === "rotate-video" && <RotateVideoPage />}{page === "convert" && <DocumentPage />}{page === "split-pdf" && <SplitPdfPage />}{page === "merge-pdf" && <MergePdfPage />}{page === "rotate-pdf" && <RotatePdfPage />}{page === "about" && <AboutPage editor={editor} />}{page === "admin" && profile?.role === "admin" && <AdminPage />}</main>
     </div>

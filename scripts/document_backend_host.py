@@ -35,7 +35,12 @@ DocxInspector.validate_editable = validate_practical_docx
 
 from app import app  # noqa: E402
 from api.pdf_tools import _page_count, _parse_ranges, _read_pdf, _safe_name  # noqa: E402
-from core.auth import AccessUser, require_ready_user  # noqa: E402
+from core.auth import AccessUser, require_ready_user, require_user  # noqa: E402
+
+if os.environ.get("LOCA_DESKTOP_MODE", "").lower() in {"1", "true", "yes"}:
+    def desktop_user() -> AccessUser:
+        return AccessUser("desktop-local", "local@desktop", "user", "active", None, False)
+    app.dependency_overrides[require_user] = desktop_user
 
 
 @app.post("/api/pdf/rotate")

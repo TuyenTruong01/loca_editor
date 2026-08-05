@@ -15,7 +15,7 @@ backend_path = os.environ["LOCA_VIDEO_BACKEND_PATH"]
 sys.path.insert(0, backend_path)
 
 from app.main import create_app  # noqa: E402
-from app.core.auth import AccessUser, require_ready_user  # noqa: E402
+from app.core.auth import AccessUser, require_ready_user, require_user  # noqa: E402
 from app.core.config import PROJECT_ROOT  # noqa: E402
 from app.services.downloader.direct_service import download_direct  # noqa: E402
 from app.services.downloader.ytdlp_service import YtDlpService  # noqa: E402
@@ -23,6 +23,11 @@ from app.services.media.processing_service import compress_video, remove_workspa
 from app.services.system.tool_checker import _find_executable  # noqa: E402
 
 app = create_app()
+
+if os.environ.get("LOCA_DESKTOP_MODE", "").lower() in {"1", "true", "yes"}:
+    def desktop_user() -> AccessUser:
+        return AccessUser("desktop-local", "local@desktop", "user", "active", None, False)
+    app.dependency_overrides[require_user] = desktop_user
 
 # Keep the public API CORS contract explicit at the host that uvicorn actually
 # serves. The upstream application also has CORS support, but its origins come
